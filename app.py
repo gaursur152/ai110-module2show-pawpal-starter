@@ -52,8 +52,24 @@ st.caption("Add a few tasks. In your final version, these should feed into your 
 
 if "tasks" not in st.session_state:
     st.session_state.tasks = []
-if "task_objects" not in st.session_state:  # [ADDED] initialize Task object list
+if "task_objects" not in st.session_state:
     st.session_state.task_objects = []
+if "schedule" not in st.session_state:  # [ADDED] persist Schedule in session_state
+    st.session_state.schedule = Schedule(available_time=int(available_time))
+else:
+    st.session_state.schedule.available_time = int(available_time)
+
+# [ADDED] persist Owner and Pet in session_state — create once, update on change
+if "owner" not in st.session_state:
+    st.session_state.owner = Owner(name=owner_name, address="", preferences=preferences, available_time=int(available_time))
+else:
+    st.session_state.owner.edit_info(name=owner_name, preferences=preferences, available_time=int(available_time))
+
+if "pet" not in st.session_state:
+    st.session_state.pet = Pet(name=pet_name, age=0, weight=0.0, species=species, breed="", gender="")
+else:
+    st.session_state.pet.name = pet_name
+    st.session_state.pet.species = species
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -64,12 +80,11 @@ with col3:
     priority = st.selectbox("Priority", ["low", "medium", "high"], index=2)
 
 if st.button("Add task"):
+    new_task = Task(name=task_title, description="", due_date="today", duration=int(duration), priority=priority)
+    st.session_state.schedule.add_task(new_task)  # [REPLACED] calls Schedule.add_task()
+    st.session_state.task_objects.append(new_task)
     st.session_state.tasks.append(
         {"title": task_title, "duration_minutes": int(duration), "priority": priority}
-    )
-    # [ADDED] also store as real Task objects for the scheduler
-    st.session_state.task_objects.append(
-        Task(name=task_title, description="", due_date="today", duration=int(duration), priority=priority)
     )
 
 if st.session_state.tasks:
@@ -84,35 +99,25 @@ st.subheader("Build Schedule")
 st.caption("This button should call your scheduling logic once you implement it.")
 
 if st.button("Generate schedule"):
-    st.warning(
-        "Not implemented yet. Next step: create your scheduling logic (classes/functions) and call it here."
-    )
-    st.markdown(
-        """
-Suggested approach:
-1. Design your UML (draft).
-2. Create class stubs (no logic).
-3. Implement scheduling behavior.
-4. Connect your scheduler here and display results.
-"""
+    owner = st.session_state.owner
+    pet = st.session_state.pet
+
+    # calls build_plan() from pawpal_system.py
+    _, _, _, plan = build_plan(
+        owner_name=owner.name, preferences=owner.preferences, available_time=owner.available_time,
+        pet_name=pet.name, species=pet.species, tasks=st.session_state.task_objects
     )
 
-    # [ADDED] call build_plan from pawpal_system.py
-    task_objects = st.session_state.get("task_objects", [])
-    if task_objects:
-        owner, pet, schedule, plan = build_plan(
-            owner_name=owner_name, preferences=preferences, available_time=int(available_time),
-            pet_name=pet_name, species=species, tasks=task_objects
-        )
-
-        st.divider()
-        st.success(f"Daily plan for {owner.name} & {pet.name} ({int(available_time)} min available)")
+    if not plan:
+        st.warning("No tasks fit within the available time — try adding tasks or increasing available time.")
+    else:
+        st.success(f"Daily plan for {owner.name} & {pet.name} ({owner.available_time} min available)")
         time_used = 0
         for i, task in enumerate(plan, 1):
             st.markdown(f"**{i}. {task.name}** — {task.duration} min | Priority: `{task.priority}`")
             time_used += task.duration
-        st.info(f"Total time scheduled: {time_used} / {int(available_time)} min")
+        st.info(f"Total time scheduled: {time_used} / {owner.available_time} min")
 
-        skipped = [t for t in task_objects if t not in plan]
+        skipped = [t for t in st.session_state.task_objects if t not in plan]
         if skipped:
             st.warning("Skipped (not enough time): " + ", ".join(t.name for t in skipped))

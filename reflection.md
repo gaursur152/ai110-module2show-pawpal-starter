@@ -57,9 +57,12 @@
 **a. Constraints and priorities**
 
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
+
 - How did you decide which constraints mattered most?
 
 **b. Tradeoffs**
+
+one tradeoff was made was using combination tools to get rid of indexes and save memory. It was resoanable because we saved memory and made the code more clearer to understand
 
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
