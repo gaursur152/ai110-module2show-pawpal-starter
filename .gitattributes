@@ -1,0 +1,3 @@
+# Normalize line endings for all text files to LF in the repository.
+# Git will convert to CRLF on Windows checkouts automatically.
+* text=auto

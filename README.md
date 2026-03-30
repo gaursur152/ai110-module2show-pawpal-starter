@@ -41,3 +41,31 @@ pip install -r requirements.txt
 5. Add tests to verify key behaviors.
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
+
+#### Testing PawPal +
+python -m pytest
+  Sorting (5 tests)
+  - Shortest-first order is correct
+  - Completed tasks are excluded from sort results
+  - Empty schedule and single-task edge cases don't crash
+  - All-same-duration tasks handled without error
+
+  Recurrence (10 tests)
+  - Daily advances exactly 1 day; weekly advances 7 days
+  - No recurrence returns None
+  - Next date is based on due_date, not today (drift prevention)
+  - All metadata (name, duration, priority, pet, start_time) is copied to the new task  
+  - Month and year boundary rollovers work correctly
+  - complete_task() auto-appends the next occurrence to the schedule
+  - Non-recurring tasks don't grow the schedule
+
+  Conflict Detection (8 tests)
+  - No conflicts when tasks have no start_time
+  - Exact overlap and partial overlap report correct minutes
+  - Back-to-back tasks (boundary touch) produce no conflict
+  - Completed tasks are excluded
+  - Same-pet vs different-pets label in conflict string
+  - Non-overlapping tasks produce empty conflict list
+  - Out-of-bounds index raises IndexError
+
+  confidence level: 4
