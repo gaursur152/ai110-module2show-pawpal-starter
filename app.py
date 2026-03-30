@@ -1,4 +1,5 @@
 import streamlit as st
+from pawpal_system import Owner, Pet, Task, Schedule, build_plan  # [ADDED]
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -42,12 +43,17 @@ st.subheader("Quick Demo Inputs (UI only)")
 owner_name = st.text_input("Owner name", value="Jordan")
 pet_name = st.text_input("Pet name", value="Mochi")
 species = st.selectbox("Species", ["dog", "cat", "other"])
+# [ADDED] extra owner/pet fields needed by our classes
+preferences = st.text_input("Owner preferences", value="no early morning tasks")
+available_time = st.number_input("Available time today (minutes)", min_value=10, max_value=480, value=120)
 
 st.markdown("### Tasks")
 st.caption("Add a few tasks. In your final version, these should feed into your scheduler.")
 
 if "tasks" not in st.session_state:
     st.session_state.tasks = []
+if "task_objects" not in st.session_state:  # [ADDED] initialize Task object list
+    st.session_state.task_objects = []
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -60,6 +66,10 @@ with col3:
 if st.button("Add task"):
     st.session_state.tasks.append(
         {"title": task_title, "duration_minutes": int(duration), "priority": priority}
+    )
+    # [ADDED] also store as real Task objects for the scheduler
+    st.session_state.task_objects.append(
+        Task(name=task_title, description="", due_date="today", duration=int(duration), priority=priority)
     )
 
 if st.session_state.tasks:
@@ -86,3 +96,23 @@ Suggested approach:
 4. Connect your scheduler here and display results.
 """
     )
+
+    # [ADDED] call build_plan from pawpal_system.py
+    task_objects = st.session_state.get("task_objects", [])
+    if task_objects:
+        owner, pet, schedule, plan = build_plan(
+            owner_name=owner_name, preferences=preferences, available_time=int(available_time),
+            pet_name=pet_name, species=species, tasks=task_objects
+        )
+
+        st.divider()
+        st.success(f"Daily plan for {owner.name} & {pet.name} ({int(available_time)} min available)")
+        time_used = 0
+        for i, task in enumerate(plan, 1):
+            st.markdown(f"**{i}. {task.name}** — {task.duration} min | Priority: `{task.priority}`")
+            time_used += task.duration
+        st.info(f"Total time scheduled: {time_used} / {int(available_time)} min")
+
+        skipped = [t for t in task_objects if t not in plan]
+        if skipped:
+            st.warning("Skipped (not enough time): " + ", ".join(t.name for t in skipped))
